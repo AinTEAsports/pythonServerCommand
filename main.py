@@ -1,8 +1,9 @@
 import os
 import sys
-import time
-import termcolor
+import argparse
 import subprocess
+
+import termcolor
 import webbrowser
 
 
@@ -13,38 +14,50 @@ def openServer(port : int):
     subprocess.run(['python3', '-m', 'http.server', str(port)])
 
 
-if len(sys.argv) > 1:
-    try:
-        port = sys.argv[1]
-        if int(port) >= 45259 or int(port) <= 0:
-            port = 8000
-    except ValueError:
-        errorText = f"[/!\] '{sys.argv[1]}' is not a valid port number, operation cancelled\n"
-        errorTextColored = termcolor.colored(errorText, 'red')
-        print(errorTextColored)
-        exit()
-    
-    if len(sys.argv) >= 3:
-        if os.path.exists(sys.argv[2]):
-            startDirectory = sys.argv[2]
-        else:
-            errorText = f"[/!\] Path '{sys.argv[2]}' does not exist, operation cancelled\n"
-            errorTextColored = termcolor.colored(errorText, 'red')
-            print(errorTextColored)
-            exit()
-            #startDirectory = os.environ['HOME']
-    else:
-        startDirectory = os.environ['HOME']
+parser = argparse.ArgumentParser(
+    description='Command that permite to open a python web server'
+)
+
+parser.add_argument(
+    '-p',
+    '--port',
+    type=int,
+    nargs='?',
+    default='8080',
+    help='Port on which the server will run'
+)
+
+parser.add_argument(
+    '-d',
+    '--directory',
+    type=str,
+    nargs='?',
+    default='./',
+    help='Directory where the server will be launched'
+)
+
+args = parser.parse_args()
+
+
+if not os.path.exists(args.directory):
+    errorText = termcolor.colored(f"[!] The directory '{args.directory}' doesn't exists\n", 'red')
+    print(errorText)
+    sys.exit()
 else:
-    port = 8000
+    os.chdir(args.directory)
 
 
-print(f"[+] Changing directory to '{startDirectory}'")
-os.chdir(startDirectory)
+if args.port <= 0 or args.port >= 10000:
+    warningText = termcolor.colored(f"[/!\\] Port '{args.port}' invalid, we switched it to 8080\n", 'yellow')
+    print(warningText)
+    args.port = 8080
 
 
 try:
-    openServer(port)
+    openServer(port=args.port)
+except PermissionError:
+    errorText = termcolor.colored(f"\[!] The port '{args.port}' is already in use\n", 'red')
+    print(errorText)
+    sys.exit()
 except KeyboardInterrupt:
-    print("\n[+] Closing server...\n")
-    time.sleep(1)
+    print("")
